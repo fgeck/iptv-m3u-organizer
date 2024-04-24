@@ -34,17 +34,11 @@ func (y *ConfigReader) FilterFromString(filterString string) (*Config, error) {
 
 	err := yaml.Unmarshal([]byte(filterString), &cfg)
 	if err == nil {
-		if cfg.M3uURL == "" {
-			return nil, errors.New("m3uURL is mandatory but not provided")
-		}
 		return &cfg, nil
 	}
 
 	err = json.Unmarshal([]byte(filterString), &cfg)
 	if err == nil {
-		if cfg.M3uURL == "" {
-			return nil, errors.New("m3uURL is mandatory but not provided")
-		}
 		return &cfg, nil
 	}
 

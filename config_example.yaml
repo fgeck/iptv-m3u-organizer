@@ -1,13 +1,11 @@
-m3uURL: https://url-to-m3u.com/
-outputFilePath: ./out.m3u
 fullmatch:
   group:
     - "DE SPORT"
-  title:
+  name:
     - "DE - DAS ERSTE HD"
 
 softmatch: # uses contains
   group:
     - "DE SPORT"
-  # title:
+  # name:
   #   - "SOFT match title"

@@ -65,38 +65,30 @@ func buildConfig(
 			logger.Fatalf("failed to read yaml config: %v", err)
 		}
 	} else if url != "" && filter != "" && outputFilePath != "" && authType != "" {
-
-		// user := os.Getenv("USER")
-		// password := os.Getenv("PASSWORD")
-		// if user == "" || password == "" {
-		// 	logger.Fatal("USER and PASSWORD environment variables must be set")
-		// }
-		// switch authType {
-		// case cfg.BasicAuth:
-		// 	config.Auth = cfg.AuthenticationInformation{
-		// 		AuthType: cfg.BasicAuth,
-		// 		User:     user,
-		// 		Password: password,
-		// 	}
-		// case cfg.URLParamAuth:
-		// 	config.Auth = cfg.AuthenticationInformation{
-		// 		AuthType: cfg.URLParamAuth,
-		// 		User:     user,
-		// 		Password: password,
-		// 	}
-		// default:
-		// 	logger.Fatalf("Invalid auth type: %s", authType)
-		// }
-
 		config, err = configReader.FilterFromString(filter)
 		if err != nil {
 			logger.Fatalf("failed to read yaml config: %v", err)
 		}
+
+		if authType != string(cfg.BasicAuth) && authType != string(cfg.URLParamAuth) {
+			logger.Fatalf("Invalid auth type: %s", authType)
+		}
+
 		config.M3uURL = url
 		config.OutputFilePath = outputFilePath
 		logger.Printf("Parsed config from arguments: \n%v", config)
 	} else {
 		logger.Fatal("Invalid parameters. Either provide a config file or a URL, filter and outputFilePath.")
+	}
+	user := os.Getenv("USER")
+	password := os.Getenv("PASSWORD")
+	if user == "" || password == "" {
+		logger.Fatal("USER and PASSWORD environment variables must be set")
+	}
+	config.Auth = &cfg.AuthenticationInformation{
+		User:     user,
+		Password: password,
+		AuthType: cfg.AuthType(authType),
 	}
 
 	return config
@@ -108,7 +100,7 @@ func (o *Organizer) Run() {
 	if err != nil {
 		o.logger.Fatalf("failed to create downloadDir: %v", err)
 	}
-	err = o.downloader.Download(o.config.M3uURL, m3uFilename)
+	err = o.downloader.Download(o.config.M3uURL, m3uFilename, o.config.Auth)
 	if err != nil {
 		o.logger.Fatalf("failed to download m3u: %v", err)
 	}

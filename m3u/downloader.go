@@ -1,10 +1,14 @@
 package m3u
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+
+	"github.com/fgeck/iptv-m3u-organizer/config"
 )
 
 const (
@@ -21,14 +25,27 @@ func NewDownloader() *Downloader {
 	}
 }
 
-func (d *Downloader) Download(url string, filename string) error {
+func (d *Downloader) Download(m3uUrl string, filename string, auth *config.AuthenticationInformation) error {
 	// Check if the file exists
 	if _, err := os.Stat(filename); err == nil {
 		d.logger.Println("File already exists. Skip download")
 		return nil
 	}
 
-	err := d.downloadToFile(url, filename)
+	parsedURL, err := url.Parse(m3uUrl)
+	if err != nil {
+		return err
+	}
+
+	switch auth.AuthType {
+	case config.BasicAuth:
+		d.logger.Fatal("Basic authentication is not supported yet")
+	case config.URLParamAuth:
+		// params := parsedURL.
+		parsedURL.RawQuery += fmt.Sprintf("&username=%s&password=%s", auth.User, auth.Password)
+	}
+
+	err = d.downloadToFile(parsedURL.String(), filename)
 	if err != nil {
 		d.logger.Printf("failed to create download file: %v", err)
 		return err

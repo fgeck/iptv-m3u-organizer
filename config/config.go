@@ -6,10 +6,9 @@ const (
 )
 
 type Config struct {
-	M3uURL         string `yaml:"m3uURL"`
-	Auth           AuthenticationInformation
-	AuthType       AuthType      `yaml:"authType"`
-	OutputFilePath string        `yaml:"outputFilePath"`
+	M3uURL         string
+	Auth           *AuthenticationInformation
+	OutputFilePath string
 	FullMatch      MatchCriteria `yaml:"fullmatch"`
 	SoftMatch      MatchCriteria `yaml:"softmatch"`
 }
