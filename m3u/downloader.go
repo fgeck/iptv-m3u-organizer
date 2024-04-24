@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	DownloadsDir = "downloads"
+	DownloadsDir = "./downloads"
 )
 
 type Downloader struct {

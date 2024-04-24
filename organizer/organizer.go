@@ -7,24 +7,55 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fgeck/iptv-m3u-organizer/config"
+	cfg "github.com/fgeck/iptv-m3u-organizer/config"
 	"github.com/fgeck/iptv-m3u-organizer/m3u"
 )
 
 type Organizer struct {
 	logger     *log.Logger
-	config     *config.Config
+	config     *cfg.Config
 	parser     *m3u.M3uParser
+	writer     *m3u.M3uWriter
+	filter     *m3u.M3uFilter
 	downloader *m3u.Downloader
 }
 
-func NewOrganizer(configFilePath string, url string, filter string) *Organizer {
+func NewOrganizer(
+	configFilePath string,
+	url string,
+	filter string,
+	outputFilePath string,
+	authType string,
+) *Organizer {
 	logger := log.New(os.Stdout, "organizer: ", log.Ldate|log.Ltime|log.Lshortfile)
-	configReader := &config.ConfigReader{}
-	m3uParser := &m3u.M3uParser{}
+	configReader := cfg.NewConfigReader()
+	m3uParser := m3u.NewParser()
+	m3uWriter := m3u.NewWriter()
 	downloader := m3u.NewDownloader()
+	m3uFilter := m3u.NewFilter()
 
-	var config *config.Config
+	config := buildConfig(configReader, logger, configFilePath, url, filter, outputFilePath, authType)
+
+	return &Organizer{
+		logger,
+		config,
+		m3uParser,
+		m3uWriter,
+		m3uFilter,
+		downloader,
+	}
+}
+
+func buildConfig(
+	configReader *cfg.ConfigReader,
+	logger *log.Logger,
+	configFilePath string,
+	url string,
+	filter string,
+	outputFilePath string,
+	authType string,
+) *cfg.Config {
+	var config *cfg.Config
 	var err error
 
 	if configFilePath != "" {
@@ -33,39 +64,46 @@ func NewOrganizer(configFilePath string, url string, filter string) *Organizer {
 		if err != nil {
 			logger.Fatalf("failed to read yaml config: %v", err)
 		}
-		logger.Printf("Parsed config from file: \n%v", config)
+	} else if url != "" && filter != "" && outputFilePath != "" && authType != "" {
 
-	} else if url != "" && filter != "" {
+		// user := os.Getenv("USER")
+		// password := os.Getenv("PASSWORD")
+		// if user == "" || password == "" {
+		// 	logger.Fatal("USER and PASSWORD environment variables must be set")
+		// }
+		// switch authType {
+		// case cfg.BasicAuth:
+		// 	config.Auth = cfg.AuthenticationInformation{
+		// 		AuthType: cfg.BasicAuth,
+		// 		User:     user,
+		// 		Password: password,
+		// 	}
+		// case cfg.URLParamAuth:
+		// 	config.Auth = cfg.AuthenticationInformation{
+		// 		AuthType: cfg.URLParamAuth,
+		// 		User:     user,
+		// 		Password: password,
+		// 	}
+		// default:
+		// 	logger.Fatalf("Invalid auth type: %s", authType)
+		// }
+
 		config, err = configReader.FilterFromString(filter)
 		if err != nil {
 			logger.Fatalf("failed to read yaml config: %v", err)
 		}
 		config.M3uURL = url
+		config.OutputFilePath = outputFilePath
 		logger.Printf("Parsed config from arguments: \n%v", config)
 	} else {
-		logger.Fatal("Invalid parameters. Either provide a config file or a URL and filter.")
+		logger.Fatal("Invalid parameters. Either provide a config file or a URL, filter and outputFilePath.")
 	}
-	return &Organizer{
-		logger,
-		config,
-		m3uParser,
-		downloader,
-	}
+
+	return config
 }
 
 func (o *Organizer) Run() {
 	m3uFilename := filepath.Join(m3u.DownloadsDir, fmt.Sprintf("%s.m3u", time.Now().Format("2006-01-02")))
-	o.downloadM3uFile(m3uFilename)
-
-	m3u, err := o.parser.ParseM3U(m3uFilename)
-	if err != nil {
-		o.logger.Fatalf("failed to read m3u file: %v", err)
-	}
-
-	o.logger.Printf("content of m3u file: %v", m3u)
-}
-
-func (o *Organizer) downloadM3uFile(m3uFilename string) {
 	err := o.downloader.CreateDownloadsDirIfNotExist()
 	if err != nil {
 		o.logger.Fatalf("failed to create downloadDir: %v", err)
@@ -73,5 +111,18 @@ func (o *Organizer) downloadM3uFile(m3uFilename string) {
 	err = o.downloader.Download(o.config.M3uURL, m3uFilename)
 	if err != nil {
 		o.logger.Fatalf("failed to download m3u: %v", err)
+	}
+
+	m3u, err := o.parser.ParseM3U(m3uFilename)
+	if err != nil {
+		o.logger.Fatalf("failed to read m3u file: %v", err)
+	}
+	filteredM3u, err := o.filter.Filter(o.config, m3u)
+	if err != nil {
+		log.Fatalf("failed to filter m3u: %v", err)
+	}
+
+	if err = o.writer.WriteToFile(filteredM3u, o.config.OutputFilePath); err != nil {
+		o.logger.Fatalf("failed to write to output file: %v", err)
 	}
 }

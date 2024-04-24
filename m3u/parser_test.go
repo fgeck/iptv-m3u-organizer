@@ -33,7 +33,7 @@ func TestParseExtinfLine(t *testing.T) {
 		},
 	}
 
-	parser := NewM3uParser()
+	parser := NewParser()
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -94,7 +94,7 @@ func TestParseM3U(t *testing.T) {
 			err:      true,
 		},
 	}
-	parser := NewM3uParser()
+	parser := NewParser()
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

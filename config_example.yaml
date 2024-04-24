@@ -1,10 +1,10 @@
 m3uURL: https://url-to-m3u.com/
+outputFilePath: ./out.m3u
 fullmatch:
   group:
     - "DE SPORT"
   title:
     - "DE - DAS ERSTE HD"
-
 
 softmatch: # uses contains
   group:

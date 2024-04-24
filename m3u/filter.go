@@ -1,12 +1,22 @@
 package m3u
 
 import (
+	"log"
+	"os"
 	"strings"
 
 	"github.com/fgeck/iptv-m3u-organizer/config"
 )
 
-type M3uFilter struct{}
+type M3uFilter struct {
+	logger *log.Logger
+}
+
+func NewFilter() *M3uFilter {
+	return &M3uFilter{
+		log.New(os.Stdout, "filter: ", log.Ldate|log.Ltime|log.Lshortfile),
+	}
+}
 
 func (f *M3uFilter) Filter(config *config.Config, m3uEntries []*M3UEntry) ([]*M3UEntry, error) {
 	filteredEntries := make([]*M3UEntry, 0, len(m3uEntries))

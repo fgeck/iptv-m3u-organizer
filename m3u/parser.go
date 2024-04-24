@@ -19,13 +19,19 @@ type M3uParser struct {
 	logger *log.Logger
 }
 
-func NewM3uParser() *M3uParser {
+func NewParser() *M3uParser {
 	return &M3uParser{
 		log.New(os.Stdout, "m3uParser: ", log.Ldate|log.Ltime|log.Lshortfile),
 	}
 }
 
 func (p *M3uParser) ParseM3U(filename string) ([]*M3UEntry, error) {
+	if info, err := os.Stat(filename); os.IsNotExist(err) {
+		log.Fatalf("The file %s does not exist", filename)
+	} else if info.Size() == 0 {
+		log.Fatalf("The file %s is empty", filename)
+	}
+
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err

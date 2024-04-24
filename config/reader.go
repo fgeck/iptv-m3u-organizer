@@ -10,6 +10,10 @@ import (
 
 type ConfigReader struct{}
 
+func NewConfigReader() *ConfigReader {
+	return &ConfigReader{}
+}
+
 func (y *ConfigReader) ConfigFromYaml(filePath string) (*Config, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
