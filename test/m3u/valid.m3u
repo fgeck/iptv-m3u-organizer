@@ -1,0 +1,7 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="" tvg-name="##### DE ALLGEMEINES #####" tvg-logo="https://somelogo.com/germany/germany_640.png" group-title="|DE| ALLGEMEINES",##### DE ALLGEMEINES #####
+https://somestream.com/stream/abc/def/123
+#EXTINF:-1 tvg-id="ZDF.de" tvg-name="DE - ZDF HD" tvg-logo="https://somelogo.com/ZDF-HD.jpg" group-title="|DE| ALLGEMEINES",DE - ZDF HD
+https://somestream.com/stream/abc/def/1234
+#EXTINF:-1 tvg-id="ARD.de" tvg-name="DE - DAS ERSTE HD" tvg-logo="https://somelogo.com/daserstehd.png" group-title="|DE| ALLGEMEINES",DE - DAS ERSTE HD
+https://somestream.com/stream/abc/def/12345

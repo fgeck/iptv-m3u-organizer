@@ -1,4 +1,4 @@
-package download
+package m3u
 
 import (
 	"io"

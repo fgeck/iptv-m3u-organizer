@@ -1,0 +1,9 @@
+m3uURL: https://example.com/playlist.m3u
+fullmatch:
+  group:
+    - Sports
+  title:
+    - HD Channel
+softmatch:
+  group:
+    - News

@@ -2,56 +2,55 @@ package m3u
 
 import (
 	"bufio"
+	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strings"
 )
 
-// ExtinfInfo represents parsed information from #EXTINF line
-type ExtinfInfo struct {
-	TvgID       string
-	TvgName     string
-	TvgLogo     string
-	GroupTitle  string
-	ChannelName string
+var tvgNameRegex = regexp.MustCompile("tvg-name=\"(.*?)\"")
+var tvgIDRegex = regexp.MustCompile("tvg-id=\"(.*?)\"")
+var logoRegex = regexp.MustCompile("tvg-logo=\"(.*?)\"")
+var groupTitleRegex = regexp.MustCompile("group-title=\"(.*?)\"")
+var titleRegex = regexp.MustCompile(`[,](.*?)$`)
+
+type M3uParser struct {
+	logger *log.Logger
 }
 
-// M3UEntry represents an entry in the M3U playlist containing ExtinfInfo and URL
-type M3UEntry struct {
-	Extinf ExtinfInfo
-	URL    string
+func NewM3uParser() *M3uParser {
+	return &M3uParser{
+		log.New(os.Stdout, "m3uParser: ", log.Ldate|log.Ltime|log.Lshortfile),
+	}
 }
 
-type M3uParser struct{}
-
-// parseM3U parses the M3U playlist file and returns a slice of M3UEntry
-func (m *M3uParser) ParseM3U(filename string) ([]M3UEntry, error) {
-	var entries []M3UEntry
-
-	// Open the .m3u file
+func (p *M3uParser) ParseM3U(filename string) ([]*M3UEntry, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	// Create a scanner to read the file line by line
 	scanner := bufio.NewScanner(file)
-
+	entries := make([]*M3UEntry, 0)
 	var extinf *ExtinfInfo
-	// Parse each line of the file
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		line = strings.ReplaceAll(line, "\\", "")
+
 		if strings.HasPrefix(line, "#EXTINF:") {
-			extinf = m.parseExtinf(line)
-		} else if extinf != nil {
-			entries = append(entries, M3UEntry{Extinf: *extinf, URL: line})
+			extinf = p.parseExtinfLine(line)
+		} else if !strings.HasPrefix(line, "#") && extinf != nil {
+			entry := &M3UEntry{
+				Extinf: extinf,
+				URL:    line,
+			}
+			entries = append(entries, entry)
 			extinf = nil
 		}
 	}
 
-	// Check for errors during scanning
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
@@ -59,32 +58,45 @@ func (m *M3uParser) ParseM3U(filename string) ([]M3UEntry, error) {
 	return entries, nil
 }
 
-// parseExtinf parses a line of #EXTINF and returns ExtinfInfo
-func (m *M3uParser) parseExtinf(line string) *ExtinfInfo {
-	// Check if the line starts with #EXTINF
-	if !strings.HasPrefix(line, "#EXTINF:") {
+func (p *M3uParser) parseExtinfLine(line string) *ExtinfInfo {
+	tvgName, err := p.getByRegex(tvgNameRegex, line)
+	if err != nil {
+		p.logger.Printf("failed to get tvgName:\n%v", err)
 		return nil
 	}
-
-	// Split the line by comma and space
-	parts := strings.SplitN(line[8:], ",", 2)
-	if len(parts) != 2 {
+	tvgID, err := p.getByRegex(tvgIDRegex, line)
+	if err != nil {
+		p.logger.Printf("failed to get tvgID:\n%v", err)
 		return nil
 	}
-
-	// Extract attributes
-	attributeRegex := regexp.MustCompile(`(\w+)="([^"]*)"`)
-	attributes := make(map[string]string)
-	matches := attributeRegex.FindAllStringSubmatch(parts[1], -1)
-	for _, match := range matches {
-		attributes[match[1]] = match[2]
+	tvgLogo, err := p.getByRegex(logoRegex, line)
+	if err != nil {
+		p.logger.Printf("failed to get tvgLogo:\n%v", err)
+		return nil
 	}
-//	"#EXTINF:-1 tvg-id=\"\" tvg-name=\"##### GENERAL #####\" tvg-logo=\"http://logo.protv.cc/picons/logos/france/FRANCE.png\" group-title=\"|EU| FRANCE HEVC\",##### GENERAL #####"
+	tvgGroupTitle, err := p.getByRegex(groupTitleRegex, line)
+	if err != nil {
+		p.logger.Printf("failed to get tvgCategory:\n%v", err)
+		return nil
+	}
+	title, err := p.getByRegex(titleRegex, line)
+	if err != nil {
+		p.logger.Printf("failed to get title but will continue:\n%v", err)
+	}
+
 	return &ExtinfInfo{
-		TvgID:       attributes["tvg-id"],
-		TvgName:     attributes["tvg-name"],
-		TvgLogo:     attributes["tvg-logo"],
-		GroupTitle:  attributes["group-title"],
-		ChannelName: strings.TrimSpace(parts[1]),
+		tvgID,
+		tvgName,
+		tvgLogo,
+		tvgGroupTitle,
+		title,
 	}
+}
+
+func (p *M3uParser) getByRegex(re *regexp.Regexp, content string) (string, error) {
+	matches := re.FindStringSubmatch(content)
+	if len(matches) > 0 {
+		return matches[1], nil
+	}
+	return "", fmt.Errorf("could not find %v in string %q", re, content)
 }
