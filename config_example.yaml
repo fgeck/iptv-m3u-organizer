@@ -1,0 +1,13 @@
+m3uURL: 
+fullmatch:
+  group:
+    - "DE SPORT"
+  title:
+    - "DE - DAS ERSTE HD"
+
+
+softmatch: # uses contains
+  group:
+    - "DE SPORT"
+  # title:
+  #   - "SOFT match title"
